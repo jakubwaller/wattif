@@ -1,0 +1,39 @@
+# Personal activity data — never commit
+data/
+exports/
+raw/
+results/
+*.fit
+*.fit.gz
+*.gpx
+*.tcx
+*.csv
+*.parquet
+*.duckdb
+
+# Credentials and tokens
+.env
+.env.*
+!.env.example
+*.token
+.garth/
+.garminconnect/
+secrets.yaml
+profile.yaml
+!profile.example.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# Notebooks and editors
+.ipynb_checkpoints/
+.idea/
+.vscode/
