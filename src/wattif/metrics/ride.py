@@ -79,11 +79,14 @@ def analyse(
     records: pl.DataFrame,
     profile: Profile,
     archive: WeatherArchive | None = None,
+    mass_kg: float | None = None,
 ) -> RideMetrics | None:
     """Compute corrected metrics for one ride. Returns None if the streams are too thin."""
     df = _prepare(records)
     if df.height < 10:
         return None
+
+    total_kg = mass_kg if mass_kg is not None else profile.total_kg
 
     headings = _headings(df)
     timestamps = df["timestamp"].to_list()
@@ -130,7 +133,7 @@ def analyse(
             gradient=gradients[i],
             headwind_ms=head,
             accel_ms2=accels[i],
-            mass_kg=profile.total_kg,
+            mass_kg=total_kg,
             cda=profile.cda,
             crr=profile.crr,
             rho=rho,
@@ -151,7 +154,7 @@ def analyse(
         distance_m=distance,
         raw_kmh=distance / total_time * 3.6 if total_time else 0.0,
         equivalent_kmh=equivalent_flat_still_air_speed(
-            mean_power, mass_kg=profile.total_kg, cda=profile.cda, crr=profile.crr
+            mean_power, mass_kg=total_kg, cda=profile.cda, crr=profile.crr
         )
         * 3.6,
         mean_power_w=mean_power / (1 - profile.drivetrain_loss),

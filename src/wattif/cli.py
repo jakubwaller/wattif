@@ -64,6 +64,14 @@ def sync(
     added = _index(paths, files or find_fit_files(paths.raw))
     typer.echo(f"{added} activity(s) added to the store.")
 
+    from datetime import date
+
+    from .ingest import weight as weight_log
+
+    weigh_ins = weight_log.fetch_weigh_ins(source.client, date(2000, 1, 1), date.today())
+    weight_log.save(paths, weigh_ins)
+    typer.echo(f"{weigh_ins.height} weigh-in(s) recorded.")
+
 
 @app.command("import")
 def import_export(
@@ -120,7 +128,18 @@ def analyse(
         typer.echo("Nothing stored yet.")
         raise typer.Exit()
 
+    from .ingest import weight as weight_log
+
     archive = None if no_weather else WeatherArchive(paths.root / "weather")
+    weights = weight_log.WeightSeries(weight_log.load(paths))
+    # The profile's rider_kg is "you as you ride", so it already carries kit. The weigh-in
+    # log is bare body mass; keep the difference and apply it to every historical date.
+    kit_kg = 0.0
+    if weights:
+        from datetime import date as _date
+
+        kit_kg = profile.rider_kg - weights.at(_date.today(), profile.rider_kg)
+        typer.echo(f"Using logged body mass per ride (+{kit_kg:.1f} kg kit).")
     rows = []
     considered = catalog.filter(pl.col("distance_m") >= min_km * 1000)
     typer.echo(f"Analysing {considered.height} ride(s)...")
@@ -129,7 +148,16 @@ def analyse(
         path = paths.activities / f"{row['activity_id']}.parquet"
         if not path.is_file():
             continue
-        metrics = analyse_ride(row["activity_id"], pl.read_parquet(path), profile, archive)
+        ride_mass = None
+        if weights:
+            ride_mass = (
+                weights.at(row["start_time"].date(), profile.rider_kg)
+                + kit_kg
+                + profile.bike_kg
+            )
+        metrics = analyse_ride(
+            row["activity_id"], pl.read_parquet(path), profile, archive, mass_kg=ride_mass
+        )
         if metrics is None:
             continue
         rows.append({
