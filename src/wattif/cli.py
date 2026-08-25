@@ -6,10 +6,12 @@ from pathlib import Path
 
 import typer
 
-from .config import Paths
+from .config import Paths, Profile
 from .ingest.export_zip import ExportArchive
 from .ingest.fit import find_fit_files, read_fit
+from .metrics.ride import analyse as analyse_ride
 from .store import has_activity, indexed_sources, load_catalog, upsert_catalog, write_activity
+from .weather.open_meteo import WeatherArchive
 
 app = typer.Typer(help="Ask what-if of your own ride data.", no_args_is_help=True)
 
@@ -95,6 +97,88 @@ def list_activities(limit: int = typer.Option(20, help="How many to show.")) -> 
         typer.echo(
             f"  {start}  {distance:6.1f} km  {speed:5.1f} km/h"
             f"  {f'{hr:>3} bpm' if hr else '      -'}  {row.get('sport') or ''}"
+        )
+
+
+@app.command()
+def analyse(
+    min_km: float = typer.Option(0.0, help="Ignore rides shorter than this."),
+    no_weather: bool = typer.Option(False, "--no-weather", help="Skip the wind correction."),
+) -> None:
+    """Correct every stored ride for wind and terrain, then show the trend.
+
+    Raw average speed conflates the rider with the weather. `equivalent` is the speed the
+    same effort would have produced on flat ground in still air, which is what makes two
+    rides on different days comparable.
+    """
+    import polars as pl
+
+    paths = Paths.default()
+    profile = Profile.load()
+    catalog = load_catalog(paths)
+    if not catalog.height:
+        typer.echo("Nothing stored yet.")
+        raise typer.Exit()
+
+    archive = None if no_weather else WeatherArchive(paths.root / "weather")
+    rows = []
+    considered = catalog.filter(pl.col("distance_m") >= min_km * 1000)
+    typer.echo(f"Analysing {considered.height} ride(s)...")
+
+    for i, row in enumerate(considered.iter_rows(named=True), 1):
+        path = paths.activities / f"{row['activity_id']}.parquet"
+        if not path.is_file():
+            continue
+        metrics = analyse_ride(row["activity_id"], pl.read_parquet(path), profile, archive)
+        if metrics is None:
+            continue
+        rows.append({
+            "activity_id": metrics.activity_id,
+            "start_time": row["start_time"],
+            "km": metrics.distance_m / 1000,
+            "raw_kmh": metrics.raw_kmh,
+            "equivalent_kmh": metrics.equivalent_kmh,
+            "power_w": metrics.mean_power_w,
+            "hr": metrics.mean_hr,
+            "headwind_ms": metrics.mean_headwind_ms,
+            "ascent_m": metrics.ascent_m,
+            "efficiency": metrics.efficiency,
+            "weather": metrics.weather,
+        })
+        if i % 50 == 0:
+            typer.echo(f"  {i}/{considered.height}")
+
+    if not rows:
+        typer.echo("No ride had enough data to analyse.")
+        raise typer.Exit()
+
+    frame = pl.DataFrame(rows).sort("start_time")
+    frame.write_parquet(paths.root / "metrics.parquet")
+    covered = int(frame["weather"].sum())
+    typer.echo(f"\n{frame.height} ride(s) analysed, {covered} with weather.\n")
+
+    quarterly = (
+        frame.with_columns(
+            quarter=pl.col("start_time").dt.year().cast(str)
+            + "Q"
+            + pl.col("start_time").dt.quarter().cast(str)
+        )
+        .group_by("quarter")
+        .agg(
+            n=pl.len(),
+            raw=pl.col("raw_kmh").mean(),
+            equivalent=pl.col("equivalent_kmh").mean(),
+            hr=pl.col("hr").mean(),
+            headwind=pl.col("headwind_ms").mean(),
+            efficiency=pl.col("efficiency").mean(),
+        )
+        .sort("quarter")
+    )
+    typer.echo("quarter   n    raw   equiv     hr   headwind   efficiency")
+    for r in quarterly.iter_rows(named=True):
+        typer.echo(
+            f"{r['quarter']}  {r['n']:>3}  {r['raw']:5.1f}  {r['equivalent']:6.1f}"
+            f"  {r['hr']:5.0f}  {r['headwind']:+7.2f}     {r['efficiency']:.4f}"
         )
 
 

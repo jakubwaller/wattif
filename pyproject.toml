@@ -11,6 +11,7 @@ dependencies = [
     "polars>=1.30",
     "typer>=0.15",
     "pyyaml>=6",
+    "requests>=2.31",
 ]
 
 [project.optional-dependencies]
