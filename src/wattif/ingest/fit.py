@@ -90,7 +90,9 @@ def read_fit(path: Path) -> Activity:
     if not decoder.is_fit():
         raise ValueError(f"{path.name} is not a FIT file")
 
-    messages, errors = decoder.read(convert_datetimes_to_dates=False)
+    # Leave date_time conversion on: `_activity_id` depends on `time_created` being a
+    # datetime, and the catalog stores real timestamps rather than FIT epoch offsets.
+    messages, errors = decoder.read()
     records = messages.get("record_mesgs") or []
     if not records:
         raise ValueError(f"{path.name} contains no record messages")

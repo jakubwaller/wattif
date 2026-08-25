@@ -33,16 +33,32 @@ def _tokens_dir() -> Path:
     return TOKEN_DIR
 
 
+def _login_with_stored_tokens(store: Path) -> Garmin | None:
+    """Try the saved tokens. Returns None when a fresh login is needed.
+
+    `login()` reports a required re-authentication by *returning* a truthy first element
+    rather than raising, so the return value has to be checked or an unauthenticated
+    client sails on and fails later with something unhelpful.
+    """
+    if not any(store.iterdir()):
+        return None
+
+    client = Garmin(prompt_mfa=_prompt_mfa)
+    try:
+        needs_mfa, _ = client.login(tokenstore=str(store))
+    except Exception as exc:
+        print(f"Stored Garmin tokens unusable ({type(exc).__name__}), logging in again.")
+        return None
+    return None if needs_mfa else client
+
+
 def connect(email: str | None = None, password: str | None = None) -> Garmin:
     """Return a logged-in client, reusing stored tokens when they are still good."""
     store = _tokens_dir()
-    client = Garmin(prompt_mfa=_prompt_mfa)
 
-    try:
-        client.login(tokenstore=str(store))
+    client = _login_with_stored_tokens(store)
+    if client is not None:
         return client
-    except Exception:
-        pass  # No usable tokens: fall through to a fresh login.
 
     email = email or os.environ.get("GARMIN_EMAIL") or input("Garmin email: ").strip()
     password = password or os.environ.get("GARMIN_PASSWORD") or getpass("Garmin password: ")
@@ -91,9 +107,15 @@ class GarminConnect:
             if target.exists():
                 continue
 
-            payload = self.client.download_activity(
-                activity_id, dl_fmt=Garmin.ActivityDownloadFormat.ORIGINAL
-            )
+            try:
+                payload = self.client.download_activity(
+                    activity_id, dl_fmt=Garmin.ActivityDownloadFormat.ORIGINAL
+                )
+            except Exception as exc:
+                # A timeout on one ride should not discard the rest of the run.
+                print(f"  could not download activity {activity_id}: {type(exc).__name__}")
+                continue
+
             fit = _fit_bytes(payload)
             if fit is None:
                 continue

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import io
 import zipfile
+from datetime import datetime
 from pathlib import Path
 
 import polars as pl
@@ -16,7 +17,7 @@ from wattif.config import Paths
 from wattif.ingest.export_zip import ExportArchive
 from wattif.ingest.fit import SEMICIRCLE_TO_DEG, _activity_id, _pick
 from wattif.ingest.garmin_sync import _fit_bytes
-from wattif.store import load_catalog, upsert_catalog
+from wattif.store import indexed_sources, load_catalog, upsert_catalog
 
 
 @pytest.fixture
@@ -129,3 +130,27 @@ def test_export_archive_reads_a_directory(tmp_path: Path):
 def test_missing_export_raises(tmp_path: Path):
     with pytest.raises(FileNotFoundError):
         ExportArchive(tmp_path / "nope.zip")
+
+
+def test_activity_id_uses_device_time_created():
+    # The id must come from the recording device, so the same ride from two sources
+    # collapses to one entry. A filename-derived id would not.
+    messages = {"file_id_mesgs": [{"time_created": datetime(2026, 8, 25, 14, 30, 5)}]}
+    assert _activity_id(messages, Path("garmin-999.fit")) == "20260825T143005Z"
+
+
+def test_same_ride_from_two_sources_shares_an_id():
+    created = datetime(2026, 8, 25, 14, 30, 5)
+    messages = {"file_id_mesgs": [{"time_created": created}]}
+    from_garmin = _activity_id(messages, Path("garmin-999.fit"))
+    from_strava = _activity_id(messages, Path("12345678.fit.gz"))
+    assert from_garmin == from_strava
+
+
+def test_indexed_sources_reports_known_filenames(paths: Paths):
+    upsert_catalog(paths, [{"activity_id": "A", "source_file": "ride-1.fit"}])
+    assert indexed_sources(paths) == {"ride-1.fit"}
+
+
+def test_indexed_sources_empty_when_no_catalog(paths: Paths):
+    assert indexed_sources(paths) == set()

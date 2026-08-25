@@ -9,7 +9,7 @@ import typer
 from .config import Paths
 from .ingest.export_zip import ExportArchive
 from .ingest.fit import find_fit_files, read_fit
-from .store import has_activity, load_catalog, upsert_catalog, write_activity
+from .store import has_activity, indexed_sources, load_catalog, upsert_catalog, write_activity
 
 app = typer.Typer(help="Ask what-if of your own ride data.", no_args_is_help=True)
 
@@ -18,8 +18,11 @@ def _index(paths: Paths, files: list[Path], reindex: bool = False) -> int:
     """Decode FIT files into the store. Returns how many activities were added."""
     summaries: list[dict] = []
     skipped = 0
+    already = set() if reindex else indexed_sources(paths)
 
     for path in files:
+        if path.name in already:
+            continue
         try:
             activity = read_fit(path)
         except ValueError as exc:

@@ -34,6 +34,19 @@ def load_catalog(paths: Paths) -> pl.DataFrame:
     return pl.read_parquet(paths.catalog)
 
 
+def indexed_sources(paths: Paths) -> set[str]:
+    """Filenames already represented in the catalog.
+
+    The activity id lives *inside* the FIT file, so recognising an already-imported ride
+    by id would mean decoding every file on every run. The source filename is the cheap
+    proxy that keeps a no-op sync from re-parsing the whole archive.
+    """
+    catalog = load_catalog(paths)
+    if not catalog.height or "source_file" not in catalog.columns:
+        return set()
+    return set(catalog["source_file"].drop_nulls().to_list())
+
+
 def upsert_catalog(paths: Paths, summaries: list[dict]) -> pl.DataFrame:
     """Merge summary rows into the catalog, newest write winning per activity."""
     if not summaries:
