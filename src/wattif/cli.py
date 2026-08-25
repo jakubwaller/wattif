@@ -44,7 +44,7 @@ def _index(paths: Paths, files: list[Path], reindex: bool = False) -> int:
 
 @app.command()
 def sync(
-    limit: int = typer.Option(50, help="How many recent activities to look at."),
+    limit: int = typer.Option(50, help="How many recent activities to look at. 0 means all."),
     all_sports: bool = typer.Option(False, "--all-sports", help="Not just rides."),
 ) -> None:
     """Pull recent activities from Garmin Connect.
@@ -57,7 +57,7 @@ def sync(
     paths = Paths.default()
     source = GarminConnect(cycling_only=not all_sports)
     typer.echo("Downloading from Garmin Connect...")
-    files = source.fetch(paths.raw, limit=limit)
+    files = source.fetch(paths.raw, limit=limit or None)
     typer.echo(f"{len(files)} new file(s) downloaded.")
     added = _index(paths, files or find_fit_files(paths.raw))
     typer.echo(f"{added} activity(s) added to the store.")
