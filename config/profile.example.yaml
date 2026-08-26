@@ -1,0 +1,18 @@
+# Copy to profile.yaml (gitignored) and edit. Everything here is a starting estimate;
+# wattif reports deltas and ratios by default precisely because these are guesses.
+
+rider_kg: 75.0        # you, as you ride: kit, shoes, helmet
+bike_kg: 10.5         # bike as ridden: bottles, tools, bags
+
+max_hr: null          # leave null to estimate from your own data
+resting_hr: null
+
+# Aerodynamic drag area, m^2. Rough starting points for a drop-bar bike:
+#   0.44 upright on the tops, 0.40 on the hoods, 0.33 in the drops
+cda: 0.40
+
+# Rolling resistance coefficient. Rough starting points:
+#   0.0040 fast 28 mm road slick, 0.0060 gravel slick, 0.0090 knobby gravel tyre
+crr: 0.0080
+
+drivetrain_loss: 0.03 # fraction of power lost between pedals and wheel

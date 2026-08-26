@@ -20,7 +20,35 @@ variable changed.
 
 ## Status
 
-Early. Nothing works yet.
+Early. Ingest works; the analysis does not exist yet.
+
+## Install
+
+```sh
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+cp config/profile.example.yaml config/profile.yaml   # then edit it
+```
+
+## Use
+
+```sh
+wattif sync                      # pull recent rides from Garmin Connect
+wattif import ~/Downloads/x.zip  # or import a Garmin/Strava bulk export
+wattif list                      # see what is stored
+```
+
+`sync` is the convenient path and `import` is the durable one. Garmin has no personal API,
+so `sync` speaks to the same private endpoints their phone app uses. That is a grey area
+under Garmin's terms and it has broken before: `garth`, the library the whole ecosystem
+depended on, stopped working in March 2026 when Garmin changed the login flow. Sources are
+kept behind one small interface so that when it happens again, the official export still
+works and nothing downstream cares.
+
+Your Garmin password is used once to obtain tokens and is never written to disk. Tokens go
+to `~/.wattif/garmin`, owner-readable only.
+
+Data lands in `./data` by default, or wherever `WATTIF_HOME` points. That directory is
+gitignored, and deleting your data means deleting the folder.
 
 ## Privacy
 
