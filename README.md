@@ -20,7 +20,8 @@ variable changed.
 
 ## Status
 
-Early. Ingest works; the analysis does not exist yet.
+Ingest works, rides are corrected for wind and terrain, and `wattif ab` runs within-ride
+A/B tests. The ranked what-if table is still to come.
 
 ## Install
 
@@ -34,7 +35,10 @@ cp config/profile.example.yaml config/profile.yaml   # then edit it
 ```sh
 wattif sync                      # pull recent rides from Garmin Connect
 wattif import ~/Downloads/x.zip  # or import a Garmin/Strava bulk export
+wattif labels ~/Downloads/s.zip  # attach bike labels from a Strava export
 wattif list                      # see what is stored
+wattif analyse --min-km 20       # corrected trend, quarter by quarter
+wattif ab --since 2026-09-01 --arms hoods,drops
 ```
 
 `sync` is the convenient path and `import` is the durable one. Garmin has no personal API,
@@ -49,6 +53,45 @@ to `~/.wattif/garmin`, owner-readable only.
 
 Data lands in `./data` by default, or wherever `WATTIF_HOME` points. That directory is
 gitignored, and deleting your data means deleting the folder.
+
+## Testing a change
+
+Whole-ride comparisons are a poor way to judge equipment. The scatter in speed-per-heartbeat
+between rides is around 5%, so a 4% change needs roughly sixteen rides per arm before it
+clears the noise - by which time the seasons have moved underneath the experiment.
+
+`wattif ab` puts both arms inside the same ride instead. Ride a few kilometres one way, a
+few the other, alternating, and the weather, your fitness and the route are identical on
+both sides of the comparison.
+
+Two details make the estimate trustworthy:
+
+- The opening of each block is discarded, because heart rate lags a change in position or
+  effort by a minute or more and those samples still belong to the previous arm.
+- Each block is compared against the mean of its two neighbours rather than against its
+  arm's overall average, which cancels any drift across the ride exactly. On a null test -
+  the same setup labelled as two arms - the uncorrected difference read -2.4% while the
+  drift-corrected one read -0.3%.
+
+Cut blocks by **distance, not time**. Measured on 18 real rides, the per-ride scatter of
+the paired difference was 3.4% using 5 km auto-laps against 5.1% using 15-minute blocks and
+12.6% using 5-minute ones. So set the watch's auto-lap to a round distance, change setup at
+every beep, and change nothing else:
+
+| to resolve | rides needed |
+| --- | --- |
+| 5% | 4 |
+| 3% | 10 |
+| 2% | 23 |
+
+Sanity-check the rig before trusting it, by running an arm against itself:
+
+```sh
+wattif ab --since 2026-05-01 --arms null_a,null_b
+```
+
+It should report roughly nothing, with an interval spanning zero. If it does not, the
+blocks are not comparable and no equipment answer from them will be either.
 
 ## Privacy
 

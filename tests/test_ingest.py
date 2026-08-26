@@ -15,7 +15,13 @@ import pytest
 
 from wattif.config import Paths
 from wattif.ingest.export_zip import ExportArchive
-from wattif.ingest.fit import SEMICIRCLE_TO_DEG, _activity_id, _pick
+from wattif.ingest.fit import (
+    SEMICIRCLE_TO_DEG,
+    _activity_id,
+    _assign_laps,
+    _lap_table,
+    _pick,
+)
 from wattif.ingest.garmin_sync import _fit_bytes
 from wattif.store import indexed_sources, load_catalog, upsert_catalog
 
@@ -185,3 +191,59 @@ def test_weight_series_falls_back_when_empty():
     from wattif.ingest.weight import WeightSeries
 
     assert WeightSeries(pl.DataFrame()).at(_date(2024, 1, 1), 77.0) == 77.0
+
+
+def test_laps_are_read_with_their_trigger():
+    start = datetime(2026, 9, 1, 8, 0)
+    laps = _lap_table(
+        {
+            "lap_mesgs": [
+                {"start_time": start, "total_elapsed_time": 300.0,
+                 "total_distance": 2000.0, "lap_trigger": "manual"},
+                {"start_time": start.replace(minute=5), "total_elapsed_time": 300.0,
+                 "total_distance": 2000.0, "lap_trigger": "distance"},
+            ]
+        }
+    )
+    assert laps["lap"].to_list() == [0, 1]
+    assert laps["trigger"].to_list() == ["manual", "distance"]
+
+
+def test_a_file_without_laps_gives_an_empty_table():
+    laps = _lap_table({})
+    assert laps.height == 0
+    assert "trigger" in laps.columns
+
+
+def test_records_are_tagged_with_the_lap_they_fall_in():
+    start = datetime(2026, 9, 1, 8, 0)
+    frame = pl.DataFrame(
+        {"timestamp": [start.replace(minute=m) for m in (0, 3, 6, 9)], "speed_ms": [7.0] * 4}
+    )
+    laps = _lap_table(
+        {
+            "lap_mesgs": [
+                {"start_time": start, "lap_trigger": "manual"},
+                {"start_time": start.replace(minute=5), "lap_trigger": "manual"},
+            ]
+        }
+    )
+    tagged = _assign_laps(frame, laps)
+    assert tagged["lap"].to_list() == [0, 0, 1, 1]
+
+
+def test_records_survive_a_file_with_no_laps():
+    frame = pl.DataFrame({"timestamp": [datetime(2026, 9, 1, 8, 0)], "speed_ms": [7.0]})
+    tagged = _assign_laps(frame, _lap_table({}))
+    assert tagged["lap"].to_list() == [None]
+
+
+def test_reindexing_keeps_annotations_the_files_do_not_carry(paths: Paths):
+    upsert_catalog(paths, [{"activity_id": "a", "distance_m": 30_000.0}])
+    # A label attached later, of the sort only the rider or another service knows.
+    catalog = load_catalog(paths).with_columns(gear=pl.lit("Test Gravel"))
+    catalog.write_parquet(paths.catalog)
+
+    # Re-decoding the same ride must not wipe it.
+    merged = upsert_catalog(paths, [{"activity_id": "a", "distance_m": 30_000.0}])
+    assert merged["gear"].to_list() == ["Test Gravel"]
