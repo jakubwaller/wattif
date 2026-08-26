@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import io
 import os
+import time
 import zipfile
 from getpass import getpass
 from pathlib import Path
@@ -21,6 +22,12 @@ from garminconnect import Garmin
 TOKEN_DIR = Path.home() / ".wattif" / "garmin"
 CYCLING_TYPES = {"cycling", "gravel_cycling", "road_biking", "mountain_biking", "virtual_ride"}
 FIT_MAGIC = b".FIT"
+
+# Garmin rate-limits by IP and answers 429 when pushed. A whole history is hundreds of
+# requests, so pace them. Downloads are resumable — anything already on disk is skipped —
+# so a 429 costs time, never progress.
+PAGE_SIZE = 100
+DOWNLOAD_PAUSE_S = 0.7
 
 
 def _prompt_mfa() -> str:
@@ -92,16 +99,34 @@ class GarminConnect:
         self.client = client or connect()
         self.cycling_only = cycling_only
 
+    def _list_activities(self, limit: int | None) -> list[dict]:
+        """Page through the activity list. `limit` of None means the whole history."""
+        collected: list[dict] = []
+        start = 0
+        while limit is None or len(collected) < limit:
+            want = PAGE_SIZE if limit is None else min(PAGE_SIZE, limit - len(collected))
+            page = self.client.get_activities(start, want) or []
+            if not page:
+                break
+            collected.extend(page)
+            start += len(page)
+            if len(page) < want:
+                break
+        return collected
+
     def fetch(self, dest: Path, limit: int | None = 50) -> list[Path]:
         dest.mkdir(parents=True, exist_ok=True)
-        activities = self.client.get_activities(0, limit or 50) or []
+        activities = self._list_activities(limit)
+        rides = [
+            a
+            for a in activities
+            if not self.cycling_only
+            or (a.get("activityType") or {}).get("typeKey", "") in CYCLING_TYPES
+        ]
+        print(f"{len(activities)} activity(s) listed, {len(rides)} ride(s) to consider.")
         written: list[Path] = []
 
-        for activity in activities:
-            type_key = (activity.get("activityType") or {}).get("typeKey", "")
-            if self.cycling_only and type_key not in CYCLING_TYPES:
-                continue
-
+        for index, activity in enumerate(rides, 1):
             activity_id = str(activity.get("activityId"))
             target = dest / f"garmin-{activity_id}.fit"
             if target.exists():
@@ -121,5 +146,9 @@ class GarminConnect:
                 continue
             target.write_bytes(fit)
             written.append(target)
+
+            if len(written) % 25 == 0:
+                print(f"  {len(written)} downloaded ({index}/{len(rides)} considered)")
+            time.sleep(DOWNLOAD_PAUSE_S)
 
         return written

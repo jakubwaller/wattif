@@ -154,3 +154,34 @@ def test_indexed_sources_reports_known_filenames(paths: Paths):
 
 def test_indexed_sources_empty_when_no_catalog(paths: Paths):
     assert indexed_sources(paths) == set()
+
+
+def test_weight_series_interpolates_between_weigh_ins():
+    from datetime import date as _date
+
+    from wattif.ingest.weight import WeightSeries
+
+    series = WeightSeries(
+        pl.DataFrame({"date": [_date(2024, 1, 1), _date(2024, 1, 11)], "kg": [80.0, 90.0]})
+    )
+    assert series.at(_date(2024, 1, 6), 0.0) == pytest.approx(85.0)
+
+
+def test_weight_series_clamps_outside_the_log():
+    from datetime import date as _date
+
+    from wattif.ingest.weight import WeightSeries
+
+    series = WeightSeries(
+        pl.DataFrame({"date": [_date(2024, 1, 1), _date(2024, 1, 11)], "kg": [80.0, 90.0]})
+    )
+    assert series.at(_date(2020, 1, 1), 0.0) == 80.0
+    assert series.at(_date(2030, 1, 1), 0.0) == 90.0
+
+
+def test_weight_series_falls_back_when_empty():
+    from datetime import date as _date
+
+    from wattif.ingest.weight import WeightSeries
+
+    assert WeightSeries(pl.DataFrame()).at(_date(2024, 1, 1), 77.0) == 77.0
