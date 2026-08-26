@@ -28,6 +28,23 @@ def write_activity(paths: Paths, activity: Activity) -> None:
     activity.records.write_parquet(activity_path(paths, activity.activity_id))
 
 
+def laps_path(paths: Paths, activity_id: str):
+    return paths.laps / f"{activity_id}.parquet"
+
+
+def write_laps(paths: Paths, activity: Activity) -> None:
+    """Write one activity's lap boundaries. Empty tables are still written, so that a
+    missing file means 'never indexed' rather than 'this ride had no laps'."""
+    activity.laps.write_parquet(laps_path(paths, activity.activity_id))
+
+
+def load_laps(paths: Paths, activity_id: str) -> pl.DataFrame:
+    path = laps_path(paths, activity_id)
+    if not path.is_file():
+        return pl.DataFrame()
+    return pl.read_parquet(path)
+
+
 def load_catalog(paths: Paths) -> pl.DataFrame:
     if not paths.catalog.is_file():
         return pl.DataFrame()
@@ -55,6 +72,15 @@ def upsert_catalog(paths: Paths, summaries: list[dict]) -> pl.DataFrame:
     incoming = pl.DataFrame(summaries, infer_schema_length=None)
     existing = load_catalog(paths)
     if existing.height:
+        # Anything the catalog knows that a decoded file cannot - the Strava gear label,
+        # say - is carried forward. Otherwise re-indexing would silently erase it.
+        annotations = [
+            c for c in existing.columns if c not in incoming.columns and c != CATALOG_KEY
+        ]
+        if annotations:
+            incoming = incoming.join(
+                existing.select([CATALOG_KEY, *annotations]), on=CATALOG_KEY, how="left"
+            )
         keep = existing.filter(~pl.col(CATALOG_KEY).is_in(incoming[CATALOG_KEY].to_list()))
         combined = pl.concat([keep, incoming], how="diagonal_relaxed")
     else:

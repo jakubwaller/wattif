@@ -75,6 +75,11 @@ class Paths:
         return self.root / "activities"
 
     @property
+    def laps(self) -> Path:
+        """One parquet of lap boundaries per activity."""
+        return self.root / "laps"
+
+    @property
     def catalog(self) -> Path:
         """One row per activity: the summary table."""
         return self.root / "catalog.parquet"
@@ -82,6 +87,7 @@ class Paths:
     def ensure(self) -> Paths:
         self.raw.mkdir(parents=True, exist_ok=True)
         self.activities.mkdir(parents=True, exist_ok=True)
+        self.laps.mkdir(parents=True, exist_ok=True)
         return self
 
     @classmethod
