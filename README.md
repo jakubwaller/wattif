@@ -84,10 +84,12 @@ every beep, and change nothing else:
 | 3% | 10 |
 | 2% | 23 |
 
-Sanity-check the rig before trusting it, by running an arm against itself:
+Sanity-check the rig before testing anything real: do a few rides with the same setup
+throughout, still auto-lapping every 5 km, then run an arm against itself from the first of
+those rides. `ab` has no end date, so run it before any real A/B rides join the window:
 
 ```sh
-wattif ab --since 2026-05-01 --arms null_a,null_b
+wattif ab --since 2026-05-01 --arms null_a,null_b   # date of the first same-setup ride
 ```
 
 It should report roughly nothing, with an interval spanning zero. If it does not, the
