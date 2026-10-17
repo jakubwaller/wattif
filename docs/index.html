@@ -254,7 +254,7 @@ per-ride scatter of the paired difference: 1.50%
 <span class="g">The difference is significant at 95%.</span></pre></div>
         <figcaption>Hoods against drops over four rides. Sample output on synthetic rides, which are less noisy than real ones, so they resolve faster than the table above.</figcaption>
     </figure>
-    <p style="margin-top:20px">Sanity-check the rig before trusting it by running an arm against itself, with the same blocks you will test with: <code>wattif ab --since 2026-05-01 --arms null_a,null_b</code>. It should report roughly nothing, with an interval spanning zero. If it does not, no equipment answer from those blocks will be trustworthy either.</p>
+    <p style="margin-top:20px">Sanity-check the rig before testing anything real: do a few rides with the same setup throughout, still auto-lapping every 5&nbsp;km, then run an arm against itself with <code>wattif ab --since &lt;date of the first of those rides&gt; --arms null_a,null_b</code>. It should report roughly nothing, with an interval spanning zero. If it does not, no equipment answer from those blocks will be trustworthy either.</p>
   </section>
 
   <section>
