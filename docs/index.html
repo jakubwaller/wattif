@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wattif — ask what-if of your own ride data</title>
+<meta name="description" content="A local command-line tool that reads your Garmin rides and answers two questions without a power meter: am I actually getting fitter, and what would make me faster.">
+<meta property="og:title" content="wattif — ask what-if of your own ride data">
+<meta property="og:description" content="Speed per heartbeat, corrected for wind and terrain, and within-ride A/B tests with honest error bars. Local only, no power meter needed.">
+<meta property="og:url" content="https://wattif.jakubwaller.eu/">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://wattif.jakubwaller.eu/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111827'/%3E%3Cpath d='M18 4 8 18h7l-2 10 11-15h-7z' fill='%23f97316'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f5f2; --surface: #ffffff; --text: #16181d; --muted: #5b616e; --line: #e2e0da;
+    --accent: #c2410c; --accent-soft: #fff1e8;
+    --term-bg: #111827; --term-text: #e5e7eb; --term-dim: #9ca3af; --term-prompt: #fb923c; --term-good: #4ade80;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0d12; --surface: #141821; --text: #e6e8ec; --muted: #9aa1ad; --line: #252a35;
+      --accent: #fb923c; --accent-soft: #2a1a10;
+      --term-bg: #0f131b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  a { color: var(--accent); }
+  code, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  code { font-size: .9em; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 72px 0 40px; }
+  .brand { font: 700 15px/1 ui-monospace, "SF Mono", Menlo, monospace; color: var(--accent); letter-spacing: .02em; }
+  h1 { font-size: clamp(34px, 6vw, 56px); line-height: 1.08; margin: 14px 0 18px; letter-spacing: -.02em; max-width: 16ch; }
+  .lead { font-size: 20px; color: var(--muted); max-width: 60ch; margin: 0 0 28px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-block; padding: 11px 18px; border-radius: 10px; font-weight: 600; text-decoration: none;
+    border: 1px solid var(--line); color: var(--text); background: var(--surface);
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { .btn.primary { color: #111; } }
+  section { padding: 40px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 28px; line-height: 1.2; margin: 0 0 16px; letter-spacing: -.01em; }
+  h3 { font-size: 19px; margin: 0 0 8px; }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); align-items: start; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .card p:last-child { margin-bottom: 0; }
+  .note { font-size: 15px; color: var(--muted); }
+  ol, ul { padding-left: 22px; margin: 0 0 14px; max-width: 66ch; }
+  li { margin-bottom: 6px; }
+  table { border-collapse: collapse; margin: 6px 0 18px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 6px 18px 6px 0; border-bottom: 1px solid var(--line); }
+  th { font-size: 14px; color: var(--muted); font-weight: 600; }
+  figure { margin: 0; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+  .term { background: var(--term-bg); color: var(--term-text); border-radius: 12px; overflow: hidden; border: 1px solid #1f2937; }
+  .term-bar { display: flex; gap: 7px; padding: 11px 14px; border-bottom: 1px solid #1f2937; }
+  .term-bar i { width: 11px; height: 11px; border-radius: 50%; background: #374151; }
+  .term pre { margin: 0; padding: 16px 18px 18px; overflow-x: auto; font-size: clamp(11.5px, 1.6vw, 13.5px); line-height: 1.55; }
+  .term .p { color: var(--term-prompt); }
+  .term b { color: #fff; }
+  .term .d { color: var(--term-dim); }
+  .term .g { color: var(--term-good); }
+  footer { border-top: 1px solid var(--line); padding: 32px 0 56px; font-size: 15px; color: var(--muted); }
+  footer p { max-width: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">wattif</div>
+    <h1>Ask what-if of your own ride data.</h1>
+    <p class="lead">A local command-line tool that reads the FIT files from your Garmin and answers two questions most cycling tools skip, both without a power meter.</p>
+    <div class="actions">
+      <a class="btn primary" href="https://github.com/jakubwaller/wattif">Source on GitHub</a>
+      <a class="btn" href="#install">Install</a>
+    </div>
+  </header>
+
+  <section>
+    <div class="grid">
+      <div class="card">
+        <h3>Am I actually getting fitter?</h3>
+        <p>Not raw average speed, which wind and terrain drown out, but speed per heartbeat, corrected for wind, gradient and equipment. A fast day into a tailwind stops looking like progress, and a hard slog into a headwind stops looking like decline.</p>
+      </div>
+      <div class="card">
+        <h3>What would make me faster?</h3>
+        <p>Tyres, riding position, a different bike, fewer stops. Measured against your own rides rather than a generic calculator.</p>
+        <p class="note">Within-ride A/B tests work today. The ranked what-if table is still to come.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it works</h2>
+    <p>Both answers come out of the same physics: estimate power from speed, gradient and air density, correct every ride for the wind you actually rode through, then compare like with like.</p>
+    <figure>
+      <div class="term"><div class="term-bar"><i></i><i></i><i></i></div><pre><span class="p">$</span> <b>wattif analyse --min-km 20</b>
+Analysing 49 ride(s)...
+
+49 ride(s) analysed, 49 with weather.
+
+<span class="d">quarter   n    raw   equiv    hr   headwind   efficiency</span>
+2024Q3    5   22.7    23.3   147    +0.06     0.1583
+2024Q4    5   23.0    23.6   149    +0.01     0.1591
+2025Q1    5   23.2    23.8   154    -0.01     0.1546
+2025Q2    5   23.9    24.7   153    +0.04     0.1620
+2025Q3    5   24.3    24.8   156    -0.04     0.1591
+2025Q4    5   25.3    26.0   161    -0.05     0.1614
+2026Q1    5   25.3    26.3   161    +0.01     0.1631
+2026Q2    5   26.3    26.9   165    +0.04     0.1632
+2026Q3    9   26.2    26.7   163    +0.04     0.1638</pre></div>
+      <figcaption>Quarter by quarter: raw speed, the wind- and terrain-equivalent speed, heart rate and efficiency (speed per heartbeat). Sample output on synthetic rides.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Test a change inside one ride</h2>
+    <p>Whole-ride comparisons are a poor way to judge equipment. Speed per heartbeat scatters around 5% from ride to ride, so a 4% change needs roughly sixteen rides per arm before it clears the noise, by which time the seasons have moved underneath the experiment.</p>
+    <p><code>wattif ab</code> puts both arms inside the same ride instead. Set the watch to auto-lap every 5&nbsp;km, switch setup at every beep and change nothing else. Weather, fitness and route are then identical on both sides of the comparison.</p>
+    <ul>
+      <li>The opening of each block is discarded, because heart rate lags a change in position or effort by a minute or more.</li>
+      <li>Each block is compared against the mean of its two neighbours, which cancels drift across the ride exactly.</li>
+      <li>Blocks are cut by distance, not time: on 18 real rides the scatter was 3.4% with 5&nbsp;km laps, against 5.1% with 15-minute and 12.6% with 5-minute blocks.</li>
+    </ul>
+    <table>
+      <tr><th>to resolve</th><th>rides needed</th></tr>
+      <tr><td>5%</td><td>4</td></tr>
+      <tr><td>3%</td><td>10</td></tr>
+      <tr><td>2%</td><td>23</td></tr>
+    </table>
+    <div class="grid">
+      <figure>
+        <div class="term"><div class="term-bar"><i></i><i></i><i></i></div><pre><span class="p">$</span> <b>wattif ab --since 2026-09-01 \
+    --arms hoods,drops --no-weather</b>
+  2026-09-03 08:00  8 block(s)  40.5 km
+  2026-09-07 09:00  8 block(s)  40.6 km
+  2026-09-12 10:00  8 block(s)  40.5 km
+  2026-09-16 11:00  8 block(s)  40.7 km
+
+32 block(s) over 4 ride(s), 24 drift-corrected pair(s).
+
+<span class="d">arm          equiv km/h    hr   efficiency</span>
+  hoods           25.89   161     0.1613
+  drops           26.90   162     0.1662
+
+<span class="g">drops vs hoods: +3.88%  (95% CI +1.48% to +6.27%)</span>
+uncorrected difference: +3.03%
+
+<span class="g">The difference is significant at 95%.</span></pre></div>
+        <figcaption>Hoods against drops over four rides. Sample output on synthetic rides.</figcaption>
+      </figure>
+      <figure>
+        <div class="term"><div class="term-bar"><i></i><i></i><i></i></div><pre><span class="p">$</span> <b>wattif ab 20041 20042 20043 20044 20045 \
+    --split time --every 5m \
+    --arms null_a,null_b --no-weather</b>
+  2026-07-07 09:00  10 block(s)  21.9 km
+  2026-07-20 10:00  26 block(s)  58.0 km
+  2026-08-05 10:00  10 block(s)  22.0 km
+  2026-08-19 09:00  26 block(s)  57.7 km
+  2026-09-02 16:00  26 block(s)  58.2 km
+
+98 block(s) over 5 ride(s), 88 drift-corrected pair(s).
+
+<span class="d">arm          equiv km/h    hr   efficiency</span>
+  null_a          26.45   164     0.1615
+  null_b          26.45   165     0.1607
+
+<span class="g">null_b vs null_a: +0.02%  (95% CI -1.87% to +1.91%)</span>
+uncorrected difference: -0.43%
+
+Not significant yet: the interval still spans zero.</pre></div>
+        <figcaption>Sanity-check the rig first: the same setup labelled as two arms should report nothing.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>Private by design</h2>
+    <p>No server, no account, no telemetry. Your rides stay on your machine. The only thing that leaves it is a coarsened coordinate for a historical weather lookup, and that is cacheable and optional. Heart rate is health data, which is why this stays a local tool rather than a hosted one.</p>
+    <p>Your Garmin password is used once to obtain tokens and is never written to disk. Garmin has no personal API, so <code>wattif sync</code> speaks to the same private endpoints their phone app uses. That has broken before, so the official Garmin export ZIP always works as a fallback.</p>
+  </section>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p>Python 3.11 or newer.</p>
+    <div class="term"><div class="term-bar"><i></i><i></i><i></i></div><pre><span class="p">$</span> <b>git clone https://github.com/jakubwaller/wattif.git &amp;&amp; cd wattif</b>
+<span class="p">$</span> <b>python3 -m venv .venv &amp;&amp; source .venv/bin/activate</b>
+<span class="p">$</span> <b>pip install -e .</b>
+<span class="p">$</span> <b>cp config/profile.example.yaml config/profile.yaml</b>   <span class="d"># then edit it</span>
+
+<span class="p">$</span> <b>wattif sync</b>                       <span class="d"># pull recent rides from Garmin Connect</span>
+<span class="p">$</span> <b>wattif import ~/Downloads/x.zip</b>   <span class="d"># or import a Garmin bulk export</span>
+<span class="p">$</span> <b>wattif analyse --min-km 20</b>        <span class="d"># corrected trend, quarter by quarter</span></pre></div>
+    <p class="note" style="margin-top:14px">More in the <a href="https://github.com/jakubwaller/wattif#readme">README</a>.</p>
+  </section>
+
+  <footer>
+    <p>Built by <a href="https://www.jakubwaller.eu">Jakub Waller</a> · MIT licence · <a href="https://github.com/jakubwaller/wattif">github.com/jakubwaller/wattif</a></p>
+    <p>This page is hosted on GitHub Pages, so GitHub receives your IP address to deliver it (<a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>). No cookies, no analytics.</p>
+  </footer>
+</div>
+</body>
+</html>
