@@ -57,7 +57,7 @@ gitignored, and deleting your data means deleting the folder.
 ## Testing a change
 
 Whole-ride comparisons are a poor way to judge equipment. The scatter in speed-per-heartbeat
-between rides is around 5%, so a 4% change needs roughly sixteen rides per arm before it
+between rides is around 5%, so a 4% change needs roughly twenty-five rides per arm before it
 clears the noise - by which time the seasons have moved underneath the experiment.
 
 `wattif ab` puts both arms inside the same ride instead. Ride a few kilometres one way, a
@@ -69,9 +69,9 @@ Two details make the estimate trustworthy:
 - The opening of each block is discarded, because heart rate lags a change in position or
   effort by a minute or more and those samples still belong to the previous arm.
 - Each block is compared against the mean of its two neighbours rather than against its
-  arm's overall average, which cancels any drift across the ride exactly. On a null test -
-  the same setup labelled as two arms - the uncorrected difference read -2.4% while the
-  drift-corrected one read -0.3%.
+  arm's overall average, which cancels any linear drift across the ride exactly. On a null
+  test - the same setup labelled as two arms - the uncorrected difference read -2.4% while
+  the drift-corrected one read -0.3%.
 
 Cut blocks by **distance, not time**. Measured on 18 real rides, the per-ride scatter of
 the paired difference was 3.4% using 5 km auto-laps against 5.1% using 15-minute blocks and
