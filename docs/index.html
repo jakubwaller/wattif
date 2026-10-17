@@ -175,23 +175,23 @@ Analysing 49 ride(s)...
 
 49 ride(s) analysed, 49 with weather.
 
-<span class="d">quarter   n    raw   equiv    hr   headwind   efficiency</span>
-2024Q3    5   22.7    23.3   147    +0.06     0.1583
-2024Q4    5   23.0    23.6   149    +0.01     0.1591
-2025Q1    5   23.2    23.8   154    -0.01     0.1546
-2025Q2    5   23.9    24.7   153    +0.04     0.1620
-2025Q3    5   24.3    24.8   156    -0.04     0.1591
-2025Q4    5   25.3    26.0   161    -0.05     0.1614
-2026Q1    5   25.3    26.3   161    +0.01     0.1631
-2026Q2    5   26.3    26.9   165    +0.04     0.1632
-2026Q3    9   26.2    26.7   163    +0.04     0.1638</pre></div>
+<span class="d">quarter   n    raw   equiv     hr   headwind   efficiency</span>
+2024Q3    5   22.7    23.3    147    +0.06     0.1583
+2024Q4    5   23.0    23.6    149    +0.01     0.1591
+2025Q1    5   23.2    23.8    154    -0.01     0.1546
+2025Q2    5   23.9    24.7    153    +0.04     0.1620
+2025Q3    5   24.3    24.8    156    -0.04     0.1591
+2025Q4    5   25.3    26.0    161    -0.05     0.1614
+2026Q1    5   25.3    26.3    161    +0.01     0.1631
+2026Q2    5   26.3    26.9    165    +0.04     0.1632
+2026Q3    9   26.2    26.7    163    +0.04     0.1638</pre></div>
       <figcaption>Quarter by quarter: raw speed, the wind- and terrain-equivalent speed, heart rate and efficiency (speed per heartbeat). Sample output on synthetic rides.</figcaption>
     </figure>
   </section>
 
   <section>
     <h2>Test a change inside one ride</h2>
-    <p>Whole-ride comparisons are a poor way to judge equipment. Speed per heartbeat scatters around 5% from ride to ride, so a 4% change needs roughly sixteen rides per arm before it clears the noise, by which time the seasons have moved underneath the experiment.</p>
+    <p>Whole-ride comparisons are a poor way to judge equipment. Speed per heartbeat scatters around 5% from ride to ride, so a 4% change needs roughly twenty-five rides per arm before it clears the noise, by which time the seasons have moved underneath the experiment.</p>
     <p><code>wattif ab</code> puts both arms inside the same ride instead. Set the watch to auto-lap every 5&nbsp;km, switch setup at every beep and change nothing else. Weather, fitness and route are then identical on both sides of the comparison.</p>
     <figure class="chart">
 <svg viewBox="0 0 360 168" role="img" aria-labelledby="fig-ab-t"><title id="fig-ab-t">A 30 km ride cut into six 5 km blocks, alternating hoods and drops. The start of each block is discarded, and each block is compared with the mean of its two neighbours.</title>
@@ -220,7 +220,7 @@ Analysing 49 ride(s)...
     </figure>
     <ul>
       <li>The opening of each block is discarded, because heart rate lags a change in position or effort by a minute or more.</li>
-      <li>Each block is compared against the mean of its two neighbours, which cancels drift across the ride exactly.</li>
+      <li>Each block is compared against the mean of its two neighbours, which cancels any linear drift across the ride exactly.</li>
       <li>Blocks are cut by distance, not time: on 18 real rides the scatter was 3.4% with 5&nbsp;km laps, against 5.1% with 15-minute and 12.6% with 5-minute blocks.</li>
     </ul>
     <table>
@@ -229,8 +229,7 @@ Analysing 49 ride(s)...
       <tr><td>3%</td><td>10</td></tr>
       <tr><td>2%</td><td>23</td></tr>
     </table>
-    <div class="grid">
-      <figure>
+    <figure>
         <div class="term"><div class="term-bar"><i></i><i></i><i></i></div><pre><span class="p">$</span> <b>wattif ab --since 2026-09-01 \
     --arms hoods,drops --no-weather</b>
   2026-09-03 08:00  8 block(s)  40.5 km
@@ -240,39 +239,22 @@ Analysing 49 ride(s)...
 
 32 block(s) over 4 ride(s), 24 drift-corrected pair(s).
 
-<span class="d">arm          equiv km/h    hr   efficiency</span>
-  hoods           25.89   161     0.1613
-  drops           26.90   162     0.1662
+<span class="d">arm            equiv km/h     hr   efficiency</span>
+  hoods            25.89    161     0.1613
+  drops            26.90    162     0.1662
 
 <span class="g">drops vs hoods: +3.88%  (95% CI +1.48% to +6.27%)</span>
 uncorrected difference: +3.03%
 
+per-ride scatter of the paired difference: 1.50%
+  to resolve 2%: 5 ride(s)
+  to resolve 3%: 2 ride(s)
+  to resolve 5%: 1 ride(s)
+
 <span class="g">The difference is significant at 95%.</span></pre></div>
-        <figcaption>Hoods against drops over four rides. Sample output on synthetic rides.</figcaption>
-      </figure>
-      <figure>
-        <div class="term"><div class="term-bar"><i></i><i></i><i></i></div><pre><span class="p">$</span> <b>wattif ab 20041 20042 20043 20044 20045 \
-    --split time --every 5m \
-    --arms null_a,null_b --no-weather</b>
-  2026-07-07 09:00  10 block(s)  21.9 km
-  2026-07-20 10:00  26 block(s)  58.0 km
-  2026-08-05 10:00  10 block(s)  22.0 km
-  2026-08-19 09:00  26 block(s)  57.7 km
-  2026-09-02 16:00  26 block(s)  58.2 km
-
-98 block(s) over 5 ride(s), 88 drift-corrected pair(s).
-
-<span class="d">arm          equiv km/h    hr   efficiency</span>
-  null_a          26.45   164     0.1615
-  null_b          26.45   165     0.1607
-
-<span class="g">null_b vs null_a: +0.02%  (95% CI -1.87% to +1.91%)</span>
-uncorrected difference: -0.43%
-
-Not significant yet: the interval still spans zero.</pre></div>
-        <figcaption>Sanity-check the rig first: the same setup labelled as two arms should report nothing.</figcaption>
-      </figure>
-    </div>
+        <figcaption>Hoods against drops over four rides. Sample output on synthetic rides, which are less noisy than real ones, so they resolve faster than the table above.</figcaption>
+    </figure>
+    <p style="margin-top:20px">Sanity-check the rig before trusting it by running an arm against itself, with the same blocks you will test with: <code>wattif ab --since 2026-05-01 --arms null_a,null_b</code>. It should report roughly nothing, with an interval spanning zero. If it does not, no equipment answer from those blocks will be trustworthy either.</p>
   </section>
 
   <section>
