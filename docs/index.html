@@ -16,12 +16,16 @@
     --bg: #f6f5f2; --surface: #ffffff; --text: #16181d; --muted: #5b616e; --line: #e2e0da;
     --accent: #c2410c; --accent-soft: #fff1e8;
     --term-bg: #111827; --term-text: #e5e7eb; --term-dim: #9ca3af; --term-prompt: #fb923c; --term-good: #4ade80;
+    --c-hr: #be185d; --c-eff: #15803d; --c-roll: #94a3b8; --c-climb: #0369a1;
+    --c-hoods: #fed7aa; --c-drops: #bae6fd;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0b0d12; --surface: #141821; --text: #e6e8ec; --muted: #9aa1ad; --line: #252a35;
       --accent: #fb923c; --accent-soft: #2a1a10;
       --term-bg: #0f131b;
+      --c-hr: #f472b6; --c-eff: #4ade80; --c-roll: #64748b; --c-climb: #38bdf8;
+      --c-hoods: #7c2d12; --c-drops: #0c4a6e;
     }
   }
   * { box-sizing: border-box; }
@@ -67,20 +71,63 @@
   .term b { color: #fff; }
   .term .d { color: var(--term-dim); }
   .term .g { color: var(--term-good); }
+  .hero { display: grid; gap: 36px; align-items: center; }
+  @media (min-width: 880px) { .hero { grid-template-columns: 1.05fr 1fr; } }
+  .chart { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 14px; margin-bottom: 20px; }
+  .chart h3 { font-size: 16px; margin: 0 0 10px; }
+  .chart figcaption { margin-top: 6px; }
+  .chart svg { display: block; width: 100%; max-width: 440px; height: auto; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .chart .ax { font-size: 12px; fill: var(--muted); }
+  .chart .lbl { font-size: 13px; fill: var(--text); }
+  .chart .strong { font-weight: 700; }
+  .chart .grid { stroke: var(--line); }
+  .chart .grid.base { stroke: var(--muted); stroke-dasharray: 3 4; }
+  .chart path[class^="s-"] { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .s-speed { stroke: var(--accent); fill: var(--accent); }
+  .s-hr { stroke: var(--c-hr); fill: var(--c-hr); }
+  .s-eff { stroke: var(--c-eff); fill: var(--c-eff); }
+  .chart .s-speed-t { fill: var(--accent); font-weight: 700; }
+  .chart .s-hr-t { fill: var(--c-hr); font-weight: 700; }
+  .chart .s-eff-t { fill: var(--c-eff); font-weight: 700; }
+  .p-aero { fill: var(--accent); } .p-roll { fill: var(--c-roll); } .p-climb { fill: var(--c-climb); }
+  .b-hoods { fill: var(--c-hoods); } .b-drops { fill: var(--c-drops); }
+  .chart .blk { font-size: 13px; font-weight: 600; fill: var(--text); }
+  .hatch-bg { fill: var(--surface); opacity: .55; } .hatch-line { stroke: var(--muted); stroke-width: 2; }
+  .arc { fill: none; stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 4 3; }
   footer { border-top: 1px solid var(--line); padding: 32px 0 56px; font-size: 15px; color: var(--muted); }
   footer p { max-width: none; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div class="brand">wattif</div>
-    <h1>Ask what-if of your own ride data.</h1>
-    <p class="lead">A local command-line tool that reads the FIT files from your Garmin and answers two questions most cycling tools skip, both without a power meter.</p>
-    <div class="actions">
-      <a class="btn primary" href="https://github.com/jakubwaller/wattif">Source on GitHub</a>
-      <a class="btn" href="#install">Install</a>
+  <header class="hero">
+    <div>
+      <div class="brand">wattif</div>
+      <h1>Ask what-if of your own ride data.</h1>
+      <p class="lead">A local command-line tool that reads the FIT files from your Garmin and answers two questions most cycling tools skip, both without a power meter.</p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/jakubwaller/wattif">Source on GitHub</a>
+        <a class="btn" href="#install">Install</a>
+      </div>
     </div>
+    <figure class="chart" style="margin-bottom:0">
+      <h3>Faster, but mostly by working harder</h3>
+<svg viewBox="0 0 400 244" role="img" aria-labelledby="fig-trend-t"><title id="fig-trend-t">Over two years speed rose 15% and heart rate 11%, while speed per heartbeat rose only 3%.</title>
+<line class="grid base" x1="34" x2="266" y1="177.6" y2="177.6"/><text class="ax" x="26" y="181.6" text-anchor="end">100</text>
+<line class="grid" x1="34" x2="266" y1="132.2" y2="132.2"/><text class="ax" x="26" y="136.2" text-anchor="end">105</text>
+<line class="grid" x1="34" x2="266" y1="86.7" y2="86.7"/><text class="ax" x="26" y="90.7" text-anchor="end">110</text>
+<line class="grid" x1="34" x2="266" y1="41.3" y2="41.3"/><text class="ax" x="26" y="45.3" text-anchor="end">115</text>
+<text class="ax" x="34" y="236" text-anchor="middle">2024Q3</text>
+<text class="ax" x="92" y="236" text-anchor="middle">2025Q1</text>
+<text class="ax" x="150" y="236" text-anchor="middle">2025Q3</text>
+<text class="ax" x="208" y="236" text-anchor="middle">2026Q1</text>
+<text class="ax" x="266" y="236" text-anchor="middle">2026Q3</text>
+<path class="s-speed" d="M34 177.6 L63 165.6 L92 157.6 L121 129.6 L150 113.6 L179 73.5 L208 73.5 L237 33.5 L266 37.5"/><circle class="s-speed" cx="266" cy="37.5" r="3"/><text class="lbl s-speed-t" x="274" y="41.5">speed +15%</text>
+<path class="s-hr" d="M34 177.6 L63 165.3 L92 134.3 L121 140.5 L150 122 L179 91.1 L208 91.1 L237 66.3 L266 78.7"/><circle class="s-hr" cx="266" cy="78.7" r="3"/><text class="lbl s-hr-t" x="274" y="82.7">heart rate +11%</text>
+<path class="s-eff" d="M34 177.6 L63 173 L92 198.9 L121 156.4 L150 173 L179 159.8 L208 150.1 L237 149.5 L266 146.1"/><circle class="s-eff" cx="266" cy="146.1" r="3"/><text class="lbl s-eff-t" x="274" y="150.1">efficiency +3%</text>
+</svg>
+      <figcaption>Two years of rides, indexed to 2024Q3 = 100. Efficiency is wind- and terrain-corrected speed per heartbeat. Sample output on synthetic rides.</figcaption>
+    </figure>
   </header>
 
   <section>
@@ -100,6 +147,28 @@
   <section>
     <h2>How it works</h2>
     <p>Both answers come out of the same physics: estimate power from speed, gradient and air density, correct every ride for the wind you actually rode through, then compare like with like.</p>
+    <figure class="chart">
+      <h3>The same 26 km/h, three very different efforts</h3>
+<svg viewBox="0 0 380 206" role="img" aria-labelledby="fig-watts-t"><title id="fig-watts-t">At the same 26 km/h: about 141 W in still air, 278 W into a 15 km/h headwind, 262 W up a 2% climb.</title>
+<text class="lbl" x="0" y="14">Still air, flat</text>
+<rect class="p-aero" x="0" y="20" width="96.9" height="24" rx="3"/>
+<rect class="p-roll" x="96.9" y="20" width="50.9" height="24" rx="3"/>
+<text class="lbl strong" x="155.8" y="37.0">141 W</text>
+<text class="lbl" x="0" y="72">15 km/h headwind</text>
+<rect class="p-aero" x="0" y="78" width="241" height="24" rx="3"/>
+<rect class="p-roll" x="241" y="78" width="50.9" height="24" rx="3"/>
+<text class="lbl strong" x="299.9" y="95.0">278 W</text>
+<text class="lbl" x="0" y="130">2% climb</text>
+<rect class="p-aero" x="0" y="136" width="96.9" height="24" rx="3"/>
+<rect class="p-roll" x="96.9" y="136" width="50.9" height="24" rx="3"/>
+<rect class="p-climb" x="147.8" y="136" width="127.1" height="24" rx="3"/>
+<text class="lbl strong" x="282.9" y="153.0">262 W</text>
+<rect class="p-aero" x="0" y="188" width="12" height="12" rx="2"/><text class="ax" x="18" y="199">air</text>
+<rect class="p-roll" x="54" y="188" width="12" height="12" rx="2"/><text class="ax" x="72" y="199">tyres</text>
+<rect class="p-climb" x="124" y="188" width="12" height="12" rx="2"/><text class="ax" x="142" y="199">climbing</text>
+</svg>
+      <figcaption>Watts at the wheel from wattif's model, for the example profile: 85.5 kg rider and bike, on the hoods. Average speed alone cannot tell these rides apart.</figcaption>
+    </figure>
     <figure>
       <div class="term"><div class="term-bar"><i></i><i></i><i></i></div><pre><span class="p">$</span> <b>wattif analyse --min-km 20</b>
 Analysing 49 ride(s)...
@@ -124,6 +193,31 @@ Analysing 49 ride(s)...
     <h2>Test a change inside one ride</h2>
     <p>Whole-ride comparisons are a poor way to judge equipment. Speed per heartbeat scatters around 5% from ride to ride, so a 4% change needs roughly sixteen rides per arm before it clears the noise, by which time the seasons have moved underneath the experiment.</p>
     <p><code>wattif ab</code> puts both arms inside the same ride instead. Set the watch to auto-lap every 5&nbsp;km, switch setup at every beep and change nothing else. Weather, fitness and route are then identical on both sides of the comparison.</p>
+    <figure class="chart">
+<svg viewBox="0 0 360 168" role="img" aria-labelledby="fig-ab-t"><title id="fig-ab-t">A 30 km ride cut into six 5 km blocks, alternating hoods and drops. The start of each block is discarded, and each block is compared with the mean of its two neighbours.</title>
+<defs><pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" class="hatch-bg"/><line x1="0" y1="0" x2="0" y2="5" class="hatch-line"/></pattern></defs>
+<rect class="b-hoods" x="2" y="62" width="57.3" height="38" rx="3"/><rect fill="url(#hatch)" x="2" y="62" width="9" height="38" rx="3"/>
+<text class="blk" x="35.2" y="86.0" text-anchor="middle">hoods</text>
+<text class="ax" x="2" y="120" text-anchor="start">0 km</text>
+<rect class="b-drops" x="61.3" y="62" width="57.3" height="38" rx="3"/><rect fill="url(#hatch)" x="61.3" y="62" width="9" height="38" rx="3"/>
+<text class="blk" x="94.5" y="86.0" text-anchor="middle">drops</text>
+<rect class="b-hoods" x="120.7" y="62" width="57.3" height="38" rx="3"/><rect fill="url(#hatch)" x="120.7" y="62" width="9" height="38" rx="3"/>
+<text class="blk" x="153.8" y="86.0" text-anchor="middle">hoods</text>
+<text class="ax" x="120.7" y="120" text-anchor="middle">10 km</text>
+<rect class="b-drops" x="180" y="62" width="57.3" height="38" rx="3"/><rect fill="url(#hatch)" x="180" y="62" width="9" height="38" rx="3"/>
+<text class="blk" x="213.2" y="86.0" text-anchor="middle">drops</text>
+<rect class="b-hoods" x="239.3" y="62" width="57.3" height="38" rx="3"/><rect fill="url(#hatch)" x="239.3" y="62" width="9" height="38" rx="3"/>
+<text class="blk" x="272.5" y="86.0" text-anchor="middle">hoods</text>
+<text class="ax" x="239.3" y="120" text-anchor="middle">20 km</text>
+<rect class="b-drops" x="298.7" y="62" width="57.3" height="38" rx="3"/><rect fill="url(#hatch)" x="298.7" y="62" width="9" height="38" rx="3"/>
+<text class="blk" x="331.8" y="86.0" text-anchor="middle">drops</text>
+<text class="ax" x="358" y="120" text-anchor="end">30 km</text>
+<path class="arc" d="M149.3 58 Q119.7 30 90 58"/>
+<path class="arc" d="M149.3 58 Q179 30 208.7 58"/>
+<text class="lbl" x="149.3" y="16" text-anchor="middle">each block vs the mean of its neighbours</text>
+<rect fill="url(#hatch)" x="2" y="142" width="14" height="14" rx="2"/><text class="ax" x="24" y="153">dropped: heart rate still settling after the switch</text>
+</svg>
+    </figure>
     <ul>
       <li>The opening of each block is discarded, because heart rate lags a change in position or effort by a minute or more.</li>
       <li>Each block is compared against the mean of its two neighbours, which cancels drift across the ride exactly.</li>
