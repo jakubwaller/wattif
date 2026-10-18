@@ -130,11 +130,14 @@ def drop_warmup(block: pl.DataFrame, warmup_s: float) -> pl.DataFrame:
 
 
 def assign_arms(count: int, arms: tuple[str, str], pattern: str = "AB") -> list[str]:
-    """Label blocks by repeating a pattern such as AB or ABBA."""
+    """Label blocks by repeating a pattern: AB, or BA to start on the second arm."""
     letters = {"A": arms[0], "B": arms[1]}
     cleaned = [c for c in pattern.upper() if c in letters]
     if not cleaned:
         raise ValueError("pattern must contain at least one of A or B")
+    # The paired estimate needs each block flanked by the other arm; ABBA never pairs a block.
+    if any(cleaned[i] == cleaned[(i + 1) % len(cleaned)] for i in range(len(cleaned))):
+        raise ValueError("pattern must alternate, AB or BA")
     return [letters[cleaned[i % len(cleaned)]] for i in range(count)]
 
 

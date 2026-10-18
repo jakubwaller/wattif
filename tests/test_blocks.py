@@ -65,12 +65,19 @@ def stream(seconds: int, start: datetime | None = None) -> pl.DataFrame:
 
 def test_arms_alternate_from_the_pattern():
     assert assign_arms(5, ARMS) == ["hoods", "drops", "hoods", "drops", "hoods"]
-    assert assign_arms(4, ARMS, "ABBA") == ["hoods", "drops", "drops", "hoods"]
+    assert assign_arms(3, ARMS, "BA") == ["drops", "hoods", "drops"]
 
 
 def test_an_empty_pattern_is_rejected():
     with pytest.raises(ValueError):
         assign_arms(3, ARMS, "??")
+
+
+@pytest.mark.parametrize("pattern", ["ABBA", "A", "ABA"])
+def test_a_pattern_that_never_pairs_a_block_is_rejected(pattern):
+    # Each block is compared with its two neighbours of the other arm; these never have any.
+    with pytest.raises(ValueError):
+        assign_arms(4, ARMS, pattern)
 
 
 def test_time_split_cuts_at_the_requested_length():

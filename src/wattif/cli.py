@@ -277,7 +277,7 @@ def ab(
     split: str = typer.Option("auto", help="Block source: auto, manual, laps or time."),
     every: str = typer.Option("5m", help="Block length when --split time."),
     warmup: str = typer.Option("90s", help="Discarded at the start of each block."),
-    pattern: str = typer.Option("AB", help="How arms alternate, e.g. AB or ABBA."),
+    pattern: str = typer.Option("AB", help="Arm order: AB, or BA to start on the second arm."),
     since: str = typer.Option(None, help="Use every ride on or after this date (YYYY-MM-DD)."),
     no_weather: bool = typer.Option(False, "--no-weather", help="Skip the wind correction."),
 ) -> None:
@@ -294,12 +294,24 @@ def ab(
     """
     import polars as pl
 
-    from .metrics.blocks import analyse_blocks, compare, rides_needed, split_by_laps, split_by_time
+    from .metrics.blocks import (
+        analyse_blocks,
+        assign_arms,
+        compare,
+        rides_needed,
+        split_by_laps,
+        split_by_time,
+    )
 
     names = tuple(x.strip() for x in arms.split(",") if x.strip())
     if len(names) != 2:
         typer.echo("Need exactly two arm names, e.g. --arms hoods,drops")
         raise typer.Exit(code=1)
+    try:
+        assign_arms(2, names, pattern)
+    except ValueError as exc:
+        typer.echo(f"--pattern {pattern}: {exc}.")
+        raise typer.Exit(code=1) from None
 
     paths = Paths.default()
     profile = Profile.load()
