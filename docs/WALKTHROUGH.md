@@ -62,7 +62,7 @@ CLI-only, skip on a web walk: everything the page tells you to run (`git clone`,
 - **The footer says GitHub Pages receives the visitor's IP**, with a link to GitHub's privacy statement.
 - **`http://` redirects (301) to `https://`** (HTTPS is enforced on GitHub Pages).
 - **The 404 page is `docs/404.html`**, in the page's own style; GitHub Pages serves it for every unknown path.
-- **The install note says only what the repo proves.** CI runs on Linux; the shell lines assume a Unix shell and the page claims nothing about Windows.
+- **The install note claims only what the repo states.** "Python 3.11 or newer" comes from `requires-python`; CI tests Python 3.12 on Linux only. The shell lines assume a Unix shell and the page claims nothing about Windows.
 - **Terminal output wraps at phone width** instead of scrolling sideways, so long lines break mid-command on a phone.
 
 ## Out of bounds
