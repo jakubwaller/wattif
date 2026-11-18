@@ -73,6 +73,7 @@ The site is static and has no way to write anywhere itself; the limits are on wh
 - **GitHub:** open the repo and the README one hop and read them. Do not sign in, star, fork, watch, open an issue or
   pull request, or download a release.
 - **Garmin, Strava:** not linked; do not visit their login or export pages.
-- **www.jakubwaller.eu:** open the landing page one hop and stop. Do not submit any form there or on any site it links to.
+- **www.jakubwaller.eu:** open the landing page one hop and stop.
+- **Any site, including docs.github.com:** do not submit any form, vote or feedback widget (such as "Did you find what you needed?").
 - Keep to a page every few seconds.
 - Never use a real name or email address anywhere.
