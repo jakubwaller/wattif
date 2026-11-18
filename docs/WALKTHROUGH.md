@@ -6,7 +6,7 @@ walk re-reports the same intentional behaviour every time.
 
 ## Site
 
-- Live: https://wattif.jakubwaller.eu (one static page, `docs/index.html`, served by GitHub Pages from `main`).
+- Live: https://wattif.jakubwaller.eu (one static page, `docs/index.html`, served by GitHub Pages from `main:/docs`; this brief is excluded from the build by `docs/_config.yml`, so it is not published).
 - Language: English only, no switch.
 - What it is: the front page of `wattif`, a local command-line tool that reads a cyclist's Garmin FIT files and
   answers "am I getting fitter?" (wind- and terrain-corrected speed per heartbeat) and "what would make me faster?"

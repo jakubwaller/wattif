@@ -1,0 +1,3 @@
+# Keep the agent brief out of the published site.
+exclude:
+  - WALKTHROUGH.md
